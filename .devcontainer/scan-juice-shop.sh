@@ -16,6 +16,15 @@ fi
 # checkout, whether this is the first run or a re-run.
 chmod -R a+rwX repos/juice-shop 2>/dev/null || true
 
+# Shannon runs with --rm, so anything it writes outside repos/ or configs/
+# (audit-logs/, sessions/, .shannon-store.json) disappears with the
+# container unless we mount it on the host too, and make sure the
+# container's user can write into it.
+mkdir -p audit-logs sessions
+chmod -R a+rwX audit-logs sessions 2>/dev/null || true
+touch .shannon-store.json 2>/dev/null || true
+chmod a+rwX .shannon-store.json 2>/dev/null || true
+
 # Make sure the target is up.
 if ! curl -fsS -o /dev/null http://localhost:3000; then
   docker start juice-shop >/dev/null 2>&1 || true
@@ -31,6 +40,9 @@ docker run --rm -it \
   -e GIT_CONFIG_VALUE_0="*" \
   -v "$(pwd)/repos:/app/repos" \
   -v "$(pwd)/configs:/app/configs" \
+  -v "$(pwd)/audit-logs:/app/audit-logs" \
+  -v "$(pwd)/sessions:/app/sessions" \
+  -v "$(pwd)/.shannon-store.json:/app/.shannon-store.json" \
   shannon:latest \
   "http://localhost:3000" \
   "/app/repos/juice-shop" \

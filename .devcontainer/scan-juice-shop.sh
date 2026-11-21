@@ -17,13 +17,15 @@ fi
 chmod -R a+rwX repos/juice-shop 2>/dev/null || true
 
 # Shannon runs with --rm, so anything it writes outside repos/ or configs/
-# (audit-logs/, sessions/, .shannon-store.json) disappears with the
-# container unless we mount it on the host too, and make sure the
-# container's user can write into it.
+# (audit-logs/, sessions/) disappears with the container unless we mount it
+# on the host too, and make sure the container's user can write into it.
+# .shannon-store.json is NOT mounted: bind-mounting a single file breaks
+# Shannon's atomic (write-then-rename/unlink) save of it, failing every
+# run with "EBUSY: resource busy or locked". It's just orchestration
+# bookkeeping, not needed for debugging, so let it live only in the
+# container and disappear with it.
 mkdir -p audit-logs sessions
 chmod -R a+rwX audit-logs sessions 2>/dev/null || true
-touch .shannon-store.json 2>/dev/null || true
-chmod a+rwX .shannon-store.json 2>/dev/null || true
 
 # Make sure the target is up.
 if ! curl -fsS -o /dev/null http://localhost:3000; then
@@ -42,7 +44,6 @@ docker run --rm -it \
   -v "$(pwd)/configs:/app/configs" \
   -v "$(pwd)/audit-logs:/app/audit-logs" \
   -v "$(pwd)/sessions:/app/sessions" \
-  -v "$(pwd)/.shannon-store.json:/app/.shannon-store.json" \
   shannon:latest \
   "http://localhost:3000" \
   "/app/repos/juice-shop" \

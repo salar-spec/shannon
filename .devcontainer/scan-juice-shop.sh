@@ -11,6 +11,11 @@ if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
   exit 1
 fi
 
+# Shannon's container runs as a different, fixed user than this Codespace,
+# so make sure it can write new files (deliverables/ reports) into the
+# checkout, whether this is the first run or a re-run.
+chmod -R a+rwX repos/juice-shop 2>/dev/null || true
+
 # Make sure the target is up.
 if ! curl -fsS -o /dev/null http://localhost:3000; then
   docker start juice-shop >/dev/null 2>&1 || true

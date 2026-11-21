@@ -37,6 +37,7 @@ docker run --rm -it \
   --network host \
   --cap-add=NET_RAW --cap-add=NET_ADMIN \
   -e ANTHROPIC_API_KEY \
+  -e ANTHROPIC_MODEL=claude-sonnet-5-5 \
   -e GIT_CONFIG_COUNT=1 \
   -e GIT_CONFIG_KEY_0=safe.directory \
   -e GIT_CONFIG_VALUE_0="*" \

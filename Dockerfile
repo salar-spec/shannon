@@ -5,6 +5,9 @@
 FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 
 # Install system dependencies available in Wolfi
+# Use the public Wolfi repo (the base image default, apk.cgr.dev, now requires auth)
+RUN echo "https://packages.wolfi.dev/os" > /etc/apk/repositories
+
 RUN apk update && apk add --no-cache \
     # Core build tools
     build-base \
@@ -54,6 +57,9 @@ FROM cgr.dev/chainguard/wolfi-base:latest AS runtime
 
 # Install only runtime dependencies
 USER root
+# Use the public Wolfi repo (the base image default, apk.cgr.dev, now requires auth)
+RUN echo "https://packages.wolfi.dev/os" > /etc/apk/repositories
+
 RUN apk update && apk add --no-cache \
     # Core utilities
     git \

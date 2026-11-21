@@ -638,6 +638,42 @@ export async function runClaudePromptWithRetry(prompt, sourceDir, allowedTools =
             );
           }
         }
+      } else {
+        // runClaudePrompt caught an error internally and returned
+        // { success: false, error, retryable } instead of throwing.
+        // Without this branch, that failure was silently ignored on
+        // every attempt and the loop threw `undefined` at the end,
+        // surfacing only as "Unknown error" with the real reason lost.
+        console.log(chalk.red(`❌ ${description} failed: ${result.error || 'Unknown error'}`));
+
+        if (auditSession) {
+          await auditSession.endAgent(agentName, {
+            attemptNumber: attempt,
+            duration_ms: result.duration || 0,
+            cost_usd: result.cost || result.partialCost || 0,
+            success: false,
+            error: result.error,
+            isFinalAttempt: attempt === maxRetries
+          });
+        }
+
+        lastError = new Error(result.error || 'Agent execution failed');
+
+        if (result.retryable && attempt < maxRetries) {
+          await rollbackGitWorkspace(sourceDir, 'retryable error cleanup');
+          const delay = getRetryDelay(lastError, attempt);
+          console.log(chalk.yellow(`⚠️ ${description} failed (attempt ${attempt}/${maxRetries}), retrying in ${(delay / 1000).toFixed(1)}s...`));
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        } else {
+          await rollbackGitWorkspace(sourceDir, 'non-retryable error cleanup');
+          throw new PentestError(
+            `Agent ${description} failed: ${result.error || 'Unknown error'}`,
+            result.errorType || 'execution',
+            Boolean(result.retryable),
+            { description, sourceDir, lastErrorMessage: result.error }
+          );
+        }
       }
 
     } catch (error) {
